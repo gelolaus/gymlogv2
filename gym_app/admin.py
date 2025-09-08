@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils import timezone
 from .models import Student, GymSession, DailyGymStats
 
 
@@ -10,12 +11,12 @@ class StudentAdmin(admin.ModelAdmin):
     """
     list_display = [
         'student_id', 'last_name', 'first_name', 'rfid', 'pe_course', 
-        'block_section', 'total_gym_sessions', 'registration_date', 'is_active'
+        'block_section', 'total_gym_sessions', 'registration_date_local', 'is_active'
     ]
     list_filter = ['pe_course', 'is_active', 'registration_date', 'block_section']
     search_fields = ['student_id', 'first_name', 'last_name', 'block_section', 'rfid']
     ordering = ['last_name', 'first_name']
-    readonly_fields = ['registration_date', 'total_gym_sessions', 'total_gym_time_minutes']
+    readonly_fields = ['registration_date', 'registration_date_local', 'total_gym_sessions', 'total_gym_time_minutes']
     
     fieldsets = (
         ('Student Information', {
@@ -28,7 +29,7 @@ class StudentAdmin(admin.ModelAdmin):
             'fields': ('pe_course', 'block_section')
         }),
         ('Account Status', {
-            'fields': ('is_active', 'registration_date')
+            'fields': ('is_active', 'registration_date', 'registration_date_local')
         }),
         ('Gym Statistics', {
             'fields': ('total_gym_sessions', 'total_gym_time_minutes'),
@@ -39,6 +40,14 @@ class StudentAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Optimize queryset with prefetch_related for gym sessions"""
         return super().get_queryset(request).prefetch_related('gym_sessions')
+    
+    def registration_date_local(self, obj):
+        """Show registration date in local timezone"""
+        if obj.registration_date:
+            return timezone.localtime(obj.registration_date).strftime('%Y-%m-%d %H:%M:%S %Z')
+        return None
+    registration_date_local.short_description = 'Registration Date (Local)'
+    registration_date_local.admin_order_field = 'registration_date'
 
 
 @admin.register(GymSession)
@@ -48,17 +57,21 @@ class GymSessionAdmin(admin.ModelAdmin):
     Allows monitoring and management of gym sessions.
     """
     list_display = [
-        'student', 'check_in_time', 'check_out_time', 
+        'student', 'check_in_time_local', 'check_out_time_local', 
         'session_duration_formatted', 'date', 'is_active'
     ]
     list_filter = ['is_active', 'date', 'check_in_time']
     search_fields = ['student__student_id', 'student__first_name', 'student__last_name']
     ordering = ['-check_in_time']
-    readonly_fields = ['duration_minutes', 'date', 'session_duration_formatted']
+    readonly_fields = ['duration_minutes', 'date', 'session_duration_formatted', 'check_in_time_local', 'check_out_time_local']
     
     fieldsets = (
         ('Session Information', {
             'fields': ('student', 'check_in_time', 'check_out_time')
+        }),
+        ('Local Time Display', {
+            'fields': ('check_in_time_local', 'check_out_time_local'),
+            'classes': ('collapse',)
         }),
         ('Session Details', {
             'fields': ('duration_minutes', 'session_duration_formatted', 'date', 'is_active')
@@ -68,6 +81,22 @@ class GymSessionAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Optimize queryset with select_related for student"""
         return super().get_queryset(request).select_related('student')
+    
+    def check_in_time_local(self, obj):
+        """Show check-in time in local timezone"""
+        if obj.check_in_time:
+            return timezone.localtime(obj.check_in_time).strftime('%Y-%m-%d %H:%M:%S %Z')
+        return None
+    check_in_time_local.short_description = 'Check-in Time (Local)'
+    check_in_time_local.admin_order_field = 'check_in_time'
+    
+    def check_out_time_local(self, obj):
+        """Show check-out time in local timezone"""
+        if obj.check_out_time:
+            return timezone.localtime(obj.check_out_time).strftime('%Y-%m-%d %H:%M:%S %Z')
+        return None
+    check_out_time_local.short_description = 'Check-out Time (Local)'
+    check_out_time_local.admin_order_field = 'check_out_time'
     
     actions = ['mark_as_completed', 'mark_as_active']
     

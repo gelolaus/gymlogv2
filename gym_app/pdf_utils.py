@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from django.http import HttpResponse
 from django.utils import timezone
 from .models import Student, GymSession, DailyGymStats
+from .timezone_utils import convert_utc_to_local, get_local_timezone
 import io
 import base64
 from django.db.models import Q, Sum
@@ -72,8 +73,9 @@ class PDFReportGenerator:
             story.append(Paragraph(subtitle, self.styles['CustomSubHeading']))
         
         # Generation info
-        generation_time = timezone.now().strftime("%B %d, %Y at %I:%M %p")
-        story.append(Paragraph(f"Generated on: {generation_time}", self.styles['Footer']))
+        generation_time = convert_utc_to_local(timezone.now()).strftime("%B %d, %Y at %I:%M %p")
+        timezone_info = f" ({get_local_timezone()})"
+        story.append(Paragraph(f"Generated on: {generation_time}{timezone_info}", self.styles['Footer']))
         story.append(Spacer(1, 20))
     
     def create_student_summary_table(self, students_data):
@@ -123,12 +125,16 @@ class PDFReportGenerator:
         data = [headers]
         
         for session in sessions:
-            check_out = session.check_out_time.strftime("%I:%M %p") if session.check_out_time else "Active"
+            # Convert times to local timezone
+            local_check_in = convert_utc_to_local(session.check_in_time)
+            local_check_out = convert_utc_to_local(session.check_out_time) if session.check_out_time else None
+            
+            check_out = local_check_out.strftime("%I:%M %p") if local_check_out else "Active"
             status = "Completed" if session.check_out_time else "Active"
             
             row = [
-                session.check_in_time.strftime("%m/%d/%Y"),
-                session.check_in_time.strftime("%I:%M %p"),
+                local_check_in.strftime("%m/%d/%Y"),
+                local_check_in.strftime("%I:%M %p"),
                 check_out,
                 session.session_duration_formatted,
                 status
@@ -197,7 +203,7 @@ class PDFReportGenerator:
             <b>Name:</b> {student.full_name}<br/>
             <b>PE Course:</b> {student.get_pe_course_display()}<br/>
             <b>Block/Section:</b> {student.block_section}<br/>
-            <b>Registration Date:</b> {student.registration_date.strftime('%B %d, %Y')}<br/>
+            <b>Registration Date:</b> {convert_utc_to_local(student.registration_date).strftime('%B %d, %Y')}<br/>
             """
             story.append(Paragraph(student_info, self.styles['Normal']))
             story.append(Spacer(1, 20))
@@ -213,8 +219,8 @@ class PDFReportGenerator:
             <b>Total Completed Sessions:</b> {total_sessions}<br/>
             <b>Total Gym Time:</b> {total_hours}h {remaining_minutes}m ({total_minutes} minutes)<br/>
             <b>Average Session Duration:</b> {total_minutes // total_sessions if total_sessions > 0 else 0} minutes<br/>
-            <b>First Session:</b> {sessions.last().check_in_time.strftime('%B %d, %Y') if sessions.exists() else 'No sessions'}<br/>
-            <b>Latest Session:</b> {sessions.first().check_in_time.strftime('%B %d, %Y') if sessions.exists() else 'No sessions'}<br/>
+            <b>First Session:</b> {convert_utc_to_local(sessions.last().check_in_time).strftime('%B %d, %Y') if sessions.exists() else 'No sessions'}<br/>
+            <b>Latest Session:</b> {convert_utc_to_local(sessions.first().check_in_time).strftime('%B %d, %Y') if sessions.exists() else 'No sessions'}<br/>
             """
             story.append(Paragraph(stats_info, self.styles['Normal']))
             story.append(Spacer(1, 20))
@@ -279,13 +285,17 @@ class PDFReportGenerator:
             data = [headers]
             
             for session in sessions:
-                check_out = session.check_out_time.strftime("%I:%M %p") if session.check_out_time else "Active"
+                # Convert times to local timezone
+                local_check_in = convert_utc_to_local(session.check_in_time)
+                local_check_out = convert_utc_to_local(session.check_out_time) if session.check_out_time else None
+                
+                check_out = local_check_out.strftime("%I:%M %p") if local_check_out else "Active"
                 status = "Completed" if session.check_out_time else "Active"
                 
                 row = [
                     session.student.student_id,
                     session.student.full_name,
-                    session.check_in_time.strftime("%I:%M %p"),
+                    local_check_in.strftime("%I:%M %p"),
                     check_out,
                     session.session_duration_formatted,
                     status

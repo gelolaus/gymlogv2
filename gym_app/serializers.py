@@ -55,36 +55,59 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
 
 class StudentSerializer(serializers.ModelSerializer):
     """
-    Serializer for student data including computed fields.
+    Serializer for student data including computed fields with timezone-aware datetime.
     """
     full_name = serializers.ReadOnlyField()
     total_gym_sessions = serializers.ReadOnlyField()
     total_gym_time_minutes = serializers.ReadOnlyField()
+    registration_date_local = serializers.SerializerMethodField()
     
     class Meta:
         model = Student
         fields = [
             'id', 'student_id', 'first_name', 'last_name', 'full_name',
-            'pe_course', 'block_section', 'rfid', 'registration_date', 'is_active',
+            'pe_course', 'block_section', 'rfid', 'registration_date', 
+            'registration_date_local', 'is_active',
             'total_gym_sessions', 'total_gym_time_minutes'
         ]
         read_only_fields = ['id', 'registration_date']
+    
+    def get_registration_date_local(self, obj):
+        """Convert registration date to local timezone"""
+        if obj.registration_date:
+            return timezone.localtime(obj.registration_date)
+        return None
 
 
 class GymSessionSerializer(serializers.ModelSerializer):
     """
-    Serializer for gym sessions.
+    Serializer for gym sessions with timezone-aware datetime fields.
     """
     student_info = StudentSerializer(source='student', read_only=True)
     session_duration_formatted = serializers.ReadOnlyField()
+    check_in_time_local = serializers.SerializerMethodField()
+    check_out_time_local = serializers.SerializerMethodField()
     
     class Meta:
         model = GymSession
         fields = [
             'id', 'student', 'student_info', 'check_in_time', 'check_out_time',
+            'check_in_time_local', 'check_out_time_local',
             'duration_minutes', 'session_duration_formatted', 'date', 'is_active'
         ]
         read_only_fields = ['id', 'check_in_time', 'duration_minutes', 'date']
+    
+    def get_check_in_time_local(self, obj):
+        """Convert check-in time to local timezone"""
+        if obj.check_in_time:
+            return timezone.localtime(obj.check_in_time)
+        return None
+    
+    def get_check_out_time_local(self, obj):
+        """Convert check-out time to local timezone"""
+        if obj.check_out_time:
+            return timezone.localtime(obj.check_out_time)
+        return None
 
 
 class StudentLoginSerializer(serializers.Serializer):

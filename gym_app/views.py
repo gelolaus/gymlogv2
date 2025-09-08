@@ -447,7 +447,7 @@ class PDFExportView(APIView):
             
             # Create HTTP response
             response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
-            filename = f"gym_report_{student_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            filename = f"gym_report_{student_id}_{timezone.localtime(timezone.now()).strftime('%Y%m%d_%H%M%S')}.pdf"
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             
             return response
@@ -532,7 +532,7 @@ class PDFExportView(APIView):
             
             # Create HTTP response
             response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
-            filename = f"block_report_{block_section}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            filename = f"block_report_{block_section}_{timezone.localtime(timezone.now()).strftime('%Y%m%d_%H%M%S')}.pdf"
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             
             return response
