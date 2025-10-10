@@ -206,12 +206,13 @@ class GymCheckInOutView(APIView):
                             date=now.date()
                         )
                         
+                        serialized = GymSessionSerializer(session).data
                         return Response({
                             'success': True,
                             'message': f'Check-in successful! Gym timer started for {student.full_name}.',
                             'data': {
-                                'session': GymSessionSerializer(session).data,
-                                'check_in_time': session.check_in_time,
+                                'session': serialized,
+                                'check_in_time_iso': serialized.get('check_in_time_iso'),
                                 'action': 'checked_in'
                             }
                         }, status=status.HTTP_201_CREATED)
@@ -237,11 +238,13 @@ class GymCheckInOutView(APIView):
                         total_mins = total_minutes % 60
                         total_formatted = f"{total_hours:02d}:{total_mins:02d}"
                         
+                        serialized = GymSessionSerializer(active_session).data
                         return Response({
                             'success': True,
                             'message': f'Check-out successful! {student.full_name} spent {active_session.session_duration_formatted} in the gym.',
                             'data': {
-                                'session': GymSessionSerializer(active_session).data,
+                                'session': serialized,
+                                'check_out_time_iso': serialized.get('check_out_time_iso'),
                                 'duration_formatted': active_session.session_duration_formatted,
                                 'daily_time_minutes': daily_minutes,
                                 'daily_time_formatted': daily_formatted,

@@ -5,17 +5,31 @@ const HeatmapCalendar = ({ data = [] }) => {
   // Create a map for quick data lookup
   const dataMap = new Map()
   data.forEach(item => {
-    const dateStr = format(new Date(item.date), 'yyyy-MM-dd')
-    dataMap.set(dateStr, item)
+    let d
+    if (!item || !item.date) return
+    if (typeof item.date === 'string') {
+      // If the string includes a time part, use it; otherwise assume Manila midnight
+      d = new Date(item.date.includes('T') ? item.date : `${item.date}T00:00:00+08:00`)
+    } else {
+      d = new Date(item.date)
+    }
+    const dateStr = format(d, 'yyyy-MM-dd')
+    dataMap.set(dateStr, { ...item, date: dateStr })
   })
 
   // Get the current year's date range
+  // Use Manila-local now to avoid timezone differences when comparing dates
   const now = new Date()
+  const manilaOffsetMs = 8 * 60 * 60 * 1000
+  const manilaNow = new Date(now.getTime() + manilaOffsetMs - now.getTimezoneOffset() * 60000)
   const yearStart = startOfYear(now)
   const yearEnd = endOfYear(now)
   
-  // Get all weeks in the year
-  const weeks = eachWeekOfInterval({ start: yearStart, end: yearEnd })
+  // Get all weeks in the year, starting on Monday so Monday-Friday cells align with labels
+  const weeks = eachWeekOfInterval(
+    { start: yearStart, end: yearEnd },
+    { weekStartsOn: 1 }
+  )
   
   // Get month labels with proper positioning
   const getMonthLabels = () => {
@@ -71,7 +85,7 @@ const HeatmapCalendar = ({ data = [] }) => {
 
   // Get tooltip text
   const getTooltipText = (cellData) => {
-    const date = format(new Date(cellData.date), 'MMM d, yyyy')
+    const date = format(new Date((cellData.date || '').includes('T') ? cellData.date : `${cellData.date}T00:00:00+08:00`), 'MMM d, yyyy')
     if (cellData.count === 0) {
       return `No gym time on ${date}`
     }
@@ -85,10 +99,10 @@ const HeatmapCalendar = ({ data = [] }) => {
   const getWorkdayCells = (weekStart) => {
     const workdayCells = []
     for (let dayIndex = 0; dayIndex < 5; dayIndex++) { // Monday to Friday
-      const date = addDays(weekStart, dayIndex)
-      const cellData = getCellData(date)
-      const isCurrentYear = date.getFullYear() === now.getFullYear()
-      const isFutureDate = date > now
+  const date = addDays(weekStart, dayIndex)
+  const cellData = getCellData(date)
+  const isCurrentYear = date.getFullYear() === manilaNow.getFullYear()
+  const isFutureDate = date > manilaNow
 
       if (!isCurrentYear || isFutureDate) {
         workdayCells.push(

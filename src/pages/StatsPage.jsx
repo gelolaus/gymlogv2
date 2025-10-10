@@ -237,7 +237,10 @@ const StatsPage = () => {
                       className="text-sm"
                       style={{ color: '#9CA3AF' }}
                     >
-                      Member since {new Date(studentStats.student_info.registration_date).toLocaleDateString()}
+                      {(() => {
+                        const iso = studentStats.student_info.registration_date_iso || studentStats.student_info.registration_date
+                        return `Member since ${new Date(iso).toLocaleDateString()}`
+                      })()}
                     </p>
                   </div>
                   <button
