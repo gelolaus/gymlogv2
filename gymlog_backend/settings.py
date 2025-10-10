@@ -145,3 +145,12 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ],
 }
+
+# Ensure DRF renders timezone-aware datetimes using an explicit ISO-8601
+# format including the timezone offset (e.g. 2025-08-07T14:00:00+08:00).
+# This prevents ambiguity when the frontend parses the datetime string
+# (some JS engines treat space-separated datetimes as local/naive).
+REST_FRAMEWORK.update({
+    'DATETIME_FORMAT': "%Y-%m-%dT%H:%M:%S%z",
+    'DATE_FORMAT': "%Y-%m-%d",
+})

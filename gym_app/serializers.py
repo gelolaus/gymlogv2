@@ -66,9 +66,20 @@ class StudentSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'student_id', 'first_name', 'last_name', 'full_name',
             'pe_course', 'block_section', 'rfid', 'registration_date', 'is_active',
-            'total_gym_sessions', 'total_gym_time_minutes'
+            'total_gym_sessions', 'total_gym_time_minutes', 'registration_date_iso'
         ]
         read_only_fields = ['id', 'registration_date']
+
+    registration_date_iso = serializers.SerializerMethodField()
+
+    def get_registration_date_iso(self, obj):
+        # Return ISO8601 with timezone offset for frontend parsing
+        if not obj.registration_date:
+            return None
+        try:
+            return timezone.localtime(obj.registration_date).isoformat()
+        except Exception:
+            return obj.registration_date.isoformat()
 
 
 class GymSessionSerializer(serializers.ModelSerializer):
@@ -82,9 +93,29 @@ class GymSessionSerializer(serializers.ModelSerializer):
         model = GymSession
         fields = [
             'id', 'student', 'student_info', 'check_in_time', 'check_out_time',
-            'duration_minutes', 'session_duration_formatted', 'date', 'is_active'
+            'duration_minutes', 'session_duration_formatted', 'date', 'is_active',
+            'check_in_time_iso', 'check_out_time_iso'
         ]
         read_only_fields = ['id', 'check_in_time', 'duration_minutes', 'date']
+
+    check_in_time_iso = serializers.SerializerMethodField()
+    check_out_time_iso = serializers.SerializerMethodField()
+
+    def get_check_in_time_iso(self, obj):
+        if not obj or not obj.check_in_time:
+            return None
+        try:
+            return timezone.localtime(obj.check_in_time).isoformat()
+        except Exception:
+            return obj.check_in_time.isoformat()
+
+    def get_check_out_time_iso(self, obj):
+        if not obj or not obj.check_out_time:
+            return None
+        try:
+            return timezone.localtime(obj.check_out_time).isoformat()
+        except Exception:
+            return obj.check_out_time.isoformat()
 
 
 class StudentLoginSerializer(serializers.Serializer):

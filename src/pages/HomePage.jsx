@@ -40,7 +40,9 @@ const HomePage = () => {
     
     if (currentStudent?.has_active_session && timer) {
       interval = setInterval(() => {
-        const startTime = new Date(currentStudent.active_session.check_in_time)
+  // Prefer timezone-aware ISO string provided by the API (check_in_time_iso)
+  const startIso = currentStudent.active_session.check_in_time_iso || currentStudent.active_session.check_in_time
+  const startTime = new Date(startIso)
         const now = new Date()
         const elapsed = Math.floor((now - startTime) / 1000)
         setElapsedTime(elapsed)
@@ -176,6 +178,8 @@ const HomePage = () => {
       }
       
     } catch (error) {
+      // Log the full error in the browser console for easier debugging in dev
+      console.error('handleRfidSubmit error:', error)
       toast.error(error.message || 'RFID not recognized. Please check your ID card or register first.')
       setCurrentStudent(null)
       setRfid('')
@@ -292,6 +296,14 @@ const HomePage = () => {
                   placeholder=""
                   value={rfid}
                   onChange={(e) => setRfid(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      // Prevent default form submit duplication
+                      e.preventDefault()
+                      // Only submit if not currently loading
+                      if (!isLoading) handleRfidSubmit(e)
+                    }
+                  }}
                   className="w-full max-w-2xl mx-auto h-16 rounded-2xl border-none shadow-inner text-center text-xl font-mono bg-white"
                   disabled={isLoading}
                   autoFocus
